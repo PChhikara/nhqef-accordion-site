@@ -1,0 +1,1723 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NHQEF CLO Development Tool</title>
+<style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      background: #f8f9fa;
+      color: #212529;
+    }
+    h2 {
+      color: #007bff;
+    }
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 1rem;
+    }
+    select, input[type="text"] {
+      margin: 0.5rem 0;
+      padding: 0.4rem;
+    }
+    .ga-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      margin-top: 0.5rem;
+    }
+    .confirmed-list {
+      margin-top: 1rem;
+      padding-left: 1rem;
+    }
+    button {
+      margin-top: 1rem;
+      padding: 0.6rem 1.2rem;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+      margin-right: 1rem;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #step2 {
+      display: none;
+      margin-top: 2rem;
+    }
+    #gaButtons {
+      margin-top: 1rem;
+    }
+  
+.highlight-label {
+  animation: flashHighlight 1s ease-in-out 2;
+  background-color: #fff3cd;
+  border-radius: 5px;
+  padding: 0.2rem 0.5rem;
+}
+@keyframes flashHighlight {
+  0% { background-color: #fff3cd; }
+  50% { background-color: #ffeeba; }
+  100% { background-color: #fff3cd; }
+}
+</style>
+</head>
+<body>
+
+<div style="text-align: center; margin-top: 1.5rem; margin-bottom: 2rem;">
+  <h2 style="color: #003366;">Tool to develop Course Learning Outcomes</h2>
+  <p style="font-style: italic; color: #333;">(Inspired from NEP 2020's holistic education goals)</p>
+  <p style="max-width: 800px; margin: 0 auto; font-size: 1rem; color: #444; text-align: left;">
+    This is a tool for departments of Indian universities to develop graduate attributes (program learning outcomes) and course learning outcomes.
+    This tool is designed by <strong>Praveen Chhikara</strong>.
+  </p>
+</div>
+
+<section>
+<h2>Step 1: Develop around 8 Graduate Attributes for your program</h2>
+<label for="programName">Program Name (e.g., BSc Mathematics):</label>
+<input id="programName" placeholder="Enter program name" style="width: 100%;" type="text"/>
+<label for="broadGA">Select a Graduate Attribute type:</label>
+<div id="gaHintPopup" style="display:none; position:absolute; background:#fffae6; color:#333; border:1px solid #ccc; padding:0.6rem; border-radius:5px; box-shadow:2px 2px 5px rgba(0,0,0,0.2); z-index:1000; font-weight:bold;">
+  👉 Do this
+</div>
+
+<select id="broadGA">
+<option value="">-- Select a GA --</option>
+</select>
+<label for="gaSelect">Select a Sub-GA:</label>
+<select id="gaSelect">
+<option value="">-- Select Sub-GA --</option>
+</select>
+<p id="exampleDisplay" style="font-style: italic; color: #6c757d;"></p><div id="sentenceStructure" style="margin-top: 1rem;"></div>
+<div id="gaButtons" style="display:none">
+<button onclick="if (isGAInputValid()) saveGA()">Save and Add another GA</button>
+<button onclick="if (isGAInputValid()) finalizeGA()">Save this as the last GA</button>
+</div>
+<div class="confirmed-list" style="background-color: #e9f7ef; border-left: 6px solid #2ecc71; padding: 1rem; border-radius: 6px;">
+<h3 style="color: #1e8449;">You will see GAs developed by you below.</h3>
+<ul id="gaList" style="font-weight: bold; font-size: 1.05rem;"></ul>
+</div>
+<div id="preStep2Buttons" style="margin-top: 2rem; display: none;">
+<button style="background-color: #28a745;">Download PDF with GAs</button>
+<button onclick="document.getElementById('step2').style.display='block'; scrollAndHighlightCourseInput();" style="background-color: #ffc107; color: black;">No, I will download later these GAs with CLOs</button>
+</div>
+</section>
+<section id="step2">
+<h2>Step 2: Develop Course Learning Outcomes (CLOs)</h2>
+
+<div id="courseHintPopup" style="display:none; position:absolute; background:#eaf7ff; color:#005073; border:1px solid #ccc; padding:0.6rem; border-radius:5px; box-shadow:2px 2px 5px rgba(0,0,0,0.2); z-index:1000; font-weight:bold;">
+  ✏️ Write the subject name
+</div>
+
+<label for="courseNameStep2">Course/Subject Name (e.g., Calculus):</label>
+<input id="courseNameStep2" placeholder="Enter course name" style="width: 100%;" type="text"/>
+
+<div id="cloHintPopup" style="display:none; position:absolute; background:#eaffea; color:#2e7d32; border:1px solid #b2dfdb; padding:0.6rem; border-radius:5px; box-shadow:2px 2px 5px rgba(0,0,0,0.2); z-index:1000; font-weight:bold;">
+  ✅ Develop another CLO for the GA selected above.
+</div>
+
+<label for="gaSelectDropdown" style="margin-top:1rem; color: #d63384; font-weight: bold;">Select a GA to write a CLO for the course above</label>
+<select id="gaSelectDropdown" style="margin-bottom: 1rem;"></select>
+<div id="cloDisplayBlock" style="margin-top: 1rem;"></div>
+<div id="step2SubGABlocksContainer" style="margin-top: 2rem;"></div><button id="showCLOSummaryButton" style="background-color: #20c997; color: white; margin-top: 2rem;">Added all GAs; create a table</button><div id="cloSummaryTable" style="display:none; margin-top:2rem;"></div>
+</section>
+<script>
+const gaOptions = {
+  "Knowledge": ["Knowledge – Concepts", "Knowledge – Procedures", "Knowledge – Linking"],
+  "Skills": ["Skills – Task", "Skills – Analyze", "Skills – Select/Evaluate"],
+  "Application": ["Application – Knowledge", "Application – Skill"],
+  "Generic": ["Generic – Communication", "Generic – Critical Judgment", "Generic – Own Learning"],
+  "Employability": ["Employability – Readiness", "Employability – Teamwork", "Employability – Ownership"],
+  "Ethics & Values": ["Ethics & Values – Practice"],
+  "Student Contribution": ["Student Contribution – Ask", "Student Contribution – Group", "Student Contribution – Risks"],
+  "Subject Evolution": ["Subject Evolution – Temporal", "Subject Evolution – Human"]
+};
+
+const confirmedGAs = [];
+const sentenceStructures = {
+  "Knowledge – Concepts": {
+    template: ["Graduates will be able to", "[verb]", "key", "[concepts/theories/principles]", "in", "[disciplinary or multidisciplinary contexts]"],
+    verbs: ["understand", "demonstrate", "develop", "articulate"]
+  },
+  "Knowledge – Procedures": {
+    template: ["Graduates will be able to", "[verb]", "[methods/procedures]", "relevant to", "[discipline/task]"],
+    verbs: ["apply", "perform", "demonstrate", "use"]
+  },
+  "Knowledge – Linking": {
+    template: ["Graduates will be able to", "[verb]", "knowledge from", "[multiple disciplines]", "to address", "[issues/problems]"],
+    verbs: ["connect", "relate", "integrate", "combine"]
+  },
+  "Skills – Task": {
+    template: ["Graduates will be able to", "[verb]", "a range of", "[technical/cognitive tasks]", "using appropriate tools and techniques"],
+    verbs: ["perform", "carry out", "execute", "operate"]
+  },
+  "Skills – Analyze": {
+    template: ["Graduates will be able to", "[verb]", "information from", "[sources/domains]", "to draw meaningful conclusions"],
+    verbs: ["analyze", "synthesize", "evaluate", "examine"]
+  },
+  "Skills – Select/Evaluate": {
+    template: ["Graduates will be able to", "[verb]", "appropriate", "[tools/methods]", "for addressing problems in", "[discipline/application]"],
+    verbs: ["select", "evaluate", "assess", "determine"]
+  },
+  "Application – Knowledge": {
+    template: ["Graduates will be able to", "[verb]", "[knowledge]", "to solve", "[real-world/simulated problems]"],
+    verbs: ["apply", "use", "translate", "implement"]
+  },
+  "Application – Skill": {
+    template: ["Graduates will be able to", "[verb]", "skills to", "[create/design solutions]", "for", "[tasks/problems]"],
+    verbs: ["utilize", "apply", "engineer", "construct"]
+  },
+  "Generic – Communication": {
+    template: ["Graduates will be able to", "[verb]", "clearly in", "[oral/written/visual forms]", "to", "[audiences/context]"],
+    verbs: ["communicate", "express", "convey", "present"]
+  },
+  "Generic – Critical Judgment": {
+    template: ["Graduates will be able to", "[verb]", "issues from", "[multiple perspectives]", "to make", "[reasoned decisions]"],
+    verbs: ["evaluate", "judge", "critique", "assess"]
+  },
+  "Generic – Own Learning": {
+    template: ["Graduates will be able to", "[verb]", "their own learning in", "[new/unfamiliar situations]", "to", "[solve problems/advance knowledge]"],
+    verbs: ["reflect on", "take responsibility for", "plan", "monitor"]
+  },
+  "Employability – Readiness": {
+    template: ["Graduates will be able to", "[verb]", "themselves for", "[professional careers/further study]"],
+    verbs: ["prepare", "equip", "develop", "position"]
+  },
+  "Employability – Teamwork": {
+    template: ["Graduates will be able to", "[verb]", "effectively in", "[teams/groups]", "to achieve", "[shared goals]"],
+    verbs: ["work", "collaborate", "coordinate", "contribute"]
+  },
+  "Employability – Ownership": {
+    template: ["Graduates will be able to", "[verb]", "responsibility for", "[work/outcomes]", "in", "[professional contexts]"],
+    verbs: ["take", "demonstrate", "assume", "exercise"]
+  },
+  "Ethics & Values – Practice": {
+    template: ["Graduates will be able to", "[verb]", "[ethical/humanistic/constitutional/moral values]", "in", "[decision-making or behavior]"],
+    verbs: ["practice", "apply", "uphold", "demonstrate"]
+  },
+  "Student Contribution – Ask": {
+    template: ["Graduates will be able to", "[verb]", "[relevant questions]", "to", "[enhance/advance learning]"],
+    verbs: ["pose", "raise", "frame", "formulate"]
+  },
+  
+  "Student Contribution – Risks": {
+    template: ["Graduates will be able to", "[verb]", "potential", "[risks or unintended effects]", "associated with", "[learning actions or decisions]"],
+    verbs: ["anticipate", "recognize", "acknowledge", "evaluate"]
+  },
+  
+  "Student Contribution – Risks": {
+    verbs: ["analyze", "identify", "discuss", "reflect"],
+    template: ["Students will be able to", "[verb]", "[possible risks/errors]", "when", "[working on tasks/applying concepts]"],
+    example: "Students will be able to identify possible risks of misapplying the chain rule when solving composite function derivatives."
+  },
+  "Student Contribution – Group": {
+    template: ["Graduates will be able to", "[verb]", "actively in", "[group discussions/projects]", "to", "[advance subject understanding]"],
+    verbs: ["participate", "contribute", "collaborate", "engage"]
+  },
+  "Subject Evolution – Temporal": {
+    template: ["Graduates will be able to", "[verb]", "the evolution of", "[subject]", "across", "[time and cultures]"],
+    verbs: ["trace", "analyze", "reflect on", "study"]
+  },
+  "Subject Evolution – Human": {
+    template: ["Graduates will be able to", "[verb]", "the contributions of", "[diverse individuals/groups]", "to", "[subject topics]"],
+    verbs: ["recognize", "acknowledge", "appreciate", "explore"]
+  }
+};
+  const calculusExamples = {
+  "Knowledge – Concepts": "Graduates will be able to understand key mathematical concepts and theorems in pure and applied mathematics.",
+  "Knowledge – Procedures": "Graduates will be able to apply analytical and computational procedures relevant to mathematical modeling tasks.",
+  "Knowledge – Linking": "Graduates will be able to integrate knowledge from mathematics and computer science to address interdisciplinary problems.",
+  "Skills – Task": "Graduates will be able to perform a range of mathematical calculations and simulations using appropriate tools and techniques.",
+  "Skills – Analyze": "Graduates will be able to analyze information from mathematical proofs and data sets to draw meaningful conclusions.",
+  "Skills – Select/Evaluate": "Graduates will be able to select appropriate algorithms and methods for addressing problems in mathematics and data science.",
+  "Application – Knowledge": "Graduates will be able to apply disciplinary knowledge to real-world problems such as economic forecasting or scientific computation.",
+  "Application – Skill": "Graduates will be able to design solutions to scientific and industrial challenges using acquired mathematical skills.",
+  "Generic – Communication": "Graduates will be able to communicate ideas clearly and effectively in written and oral forms to both expert and non-expert audiences.",
+  "Generic – Critical Judgment": "Graduates will be able to evaluate on mathematical and statistical models using data, evidence, or theoretical frameworks.",
+  "Generic – Own Learning": "Graduates will be able to manage their learning goals and identify opportunities for development in mathematical research.",
+  "Employability – Readiness": "Graduates will be able to demonstrate the skills and knowledge required to perform effectively in mathematics-related professions.",
+  "Employability – Teamwork": "Graduates will be able to collaborate effectively in teams to achieve shared goals in academic and industrial contexts.",
+  "Employability – Ownership": "Graduates will be able to take responsibility for individual and group responsibilities for project-based mathematical tasks.",
+  "Ethics & Values – Practice": "Graduates will be able to uphold ethical and humanistic values in academic and professional decision-making.",
+  "Student Contribution – Ask": "Graduates will be able to contribute by raising relevant questions and participating in intellectual discourse in mathematics.",
+  "Student Contribution – Group": "Graduates will be able to participate in group-based academic tasks such as collaborative problem-solving to advance subject understanding.",
+  "Student Contribution – Risks": "Graduates will be able to evaluate potential risks associated with incorrect application of theorems or assumptions in calculus problem-solving.",
+
+  "Subject Evolution – Temporal": "Graduates will be able to trace the evolution of mathematics across historical and contemporary contexts.",
+  "Subject Evolution – Human": "Graduates will be able to appreciate contributions of diverse individuals and cultures in shaping mathematical thought.",
+};
+
+
+const broadGASelect = document.getElementById("broadGA");
+const subGASelect = document.getElementById("gaSelect");
+const sentenceStructureDiv = document.getElementById("sentenceStructure");
+const gaList = document.getElementById("gaList");
+const gaButtons = document.getElementById("gaButtons");
+const preStep2Buttons = document.getElementById("preStep2Buttons");
+
+function populateBroadGAs() {
+  Object.keys(gaOptions).forEach(ga => {
+    const opt = document.createElement("option");
+    opt.value = ga;
+    opt.textContent = ga;
+    broadGASelect.appendChild(opt);
+  });
+}
+
+function updateSubGAs() {
+  const selectedGA = broadGASelect.value;
+  subGASelect.innerHTML = '<option value="">-- Select Sub-GA --</option>';
+  
+
+  sentenceStructureDiv.innerHTML = '';
+
+  gaButtons.style.display = 'none';
+  if (selectedGA && gaOptions[selectedGA]) {
+    gaOptions[selectedGA].forEach(sub => {
+      const opt = document.createElement("option");
+      opt.value = sub;
+      opt.textContent = sub;
+      subGASelect.appendChild(opt);
+    });
+  }
+}
+
+
+function updateSentenceStructure() {
+  const selectedSubGA = subGASelect.value;
+  const structure = sentenceStructures[selectedSubGA];
+
+  
+
+  sentenceStructureDiv.innerHTML = '';
+
+  const exampleText = calculusExamples[selectedSubGA];
+  const exampleDisplay = document.getElementById("exampleDisplay");
+  if (exampleDisplay) {
+    exampleDisplay.textContent = exampleText ? "Example (BSc Mathematics): " + exampleText : "No example available yet for this Sub-GA.";
+  }
+
+  if (structure) {
+    const container = document.createElement("div");
+    container.className = "ga-line";
+    structure.template.forEach(part => {
+      if (part === "[verb]") {
+        const sel = document.createElement("select");
+        structure.verbs.forEach(v => {
+          const opt = document.createElement("option");
+          opt.value = v;
+          opt.textContent = v;
+          sel.appendChild(opt);
+        });
+        container.appendChild(sel);
+      } else if (part.startsWith("[")) {
+        const input = document.createElement("input");
+        input.type = "text";
+      input.placeholder = "Write something about " + part.slice(1, -1);
+      input.style.width = "320px";
+        container.appendChild(input);
+      } else {
+        const span = document.createElement("span");
+        span.textContent = part + ' ';
+        container.appendChild(span);
+      }
+    });
+    sentenceStructureDiv.appendChild(container);
+    gaButtons.style.display = 'block';
+  } else {
+    gaButtons.style.display = 'none';
+  }
+}
+
+
+function saveGA() {
+  const subGA = subGASelect.value;
+  const structure = sentenceStructures[subGA];
+  const inputs = sentenceStructureDiv.querySelectorAll('select, input');
+  const staticParts = structure.template;
+  let sentence = '';
+  let inputIndex = 0;
+  staticParts.forEach(part => {
+    if (part === "[verb]" || part.startsWith("[")) {
+      sentence += ' ' + inputs[inputIndex].value;
+      inputIndex++;
+    } else {
+      sentence += ' ' + part;
+    }
+  });
+  if (!sentence.endsWith('.')) sentence += '.';
+  const li = document.createElement("li");
+  const gaIndex = gaList.children.length + 1;
+  const gaText = `${subGA}: ${sentence}`;
+  li.textContent = `${gaIndex}. ${gaText}`;
+
+  const editButton = document.createElement("button");
+  editButton.textContent = "Edit";
+  editButton.style.marginLeft = "10px";
+  editButton.onclick = () => {
+    const gaCategory = Object.keys(gaOptions).find(key => gaOptions[key].includes(subGA));
+    if (gaCategory) {
+      broadGASelect.value = gaCategory;
+      updateSubGAs();
+      setTimeout(() => {
+        subGASelect.value = subGA;
+        updateSentenceStructure();
+      }, 100);
+    }
+  };
+  li.appendChild(editButton);
+  gaList.appendChild(li);
+  
+
+  sentenceStructureDiv.innerHTML = '';
+
+  gaButtons.style.display = 'none';
+  broadGASelect.value = "";
+  subGASelect.innerHTML = '<option value="">-- Select Sub-GA --</option>';
+  updateSubGAs();
+  
+  // Scroll and highlight the GA label
+  const labelElement = document.querySelector('label[for="broadGA"]');
+  if (labelElement) {
+    labelElement.classList.add("highlight-label");
+    labelElement.scrollIntoView({ behavior: "smooth", block: "center" });
+    setTimeout(() => labelElement.classList.remove("highlight-label"), 2000);
+  }
+
+}
+
+function finalizeGA() {
+  saveGA();
+  updateStep2Dropdown();
+  preStep2Buttons.style.display = 'block';
+  const preStep2 = document.getElementById('preStep2Buttons');
+  if (preStep2) {
+    preStep2.classList.add('highlight-label');
+    preStep2.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => preStep2.classList.remove('highlight-label'), 2000);
+  }
+}
+
+broadGASelect.addEventListener("change", updateSubGAs);
+subGASelect.addEventListener("change", () => {
+  updateSentenceStructure();
+  gaButtons.style.display = 'block';
+});
+
+function isGAInputValid() {
+  const inputs = sentenceStructureDiv.querySelectorAll('select, input');
+  for (const input of inputs) {
+    if (!input.value.trim()) {
+      alert("Please fill all fields and select verbs before proceeding.");
+      return false;
+    }
+  }
+  return true;
+}
+
+
+const cloTemplates = {
+  "Knowledge – Concepts": {
+    verbs: ["define", "describe", "explain", "classify", "summarize"],
+    template: ["Students will be able to", "[verb]", "[concept/topic]", "in", "[context/course unit]"],
+    example: "Students will be able to explain the concept of limits in the context of continuous functions."
+  },
+  "Knowledge – Procedures": {
+    verbs: ["execute", "implement", "solve", "use", "operate"],
+    template: ["Students will be able to", "[verb]", "[procedure/tool]", "to", "[problem type or task]"],
+    example: "Students will be able to solve first-order differential equations to model population growth."
+  },
+  "Knowledge – Linking": {
+    verbs: ["compare", "contrast", "map", "associate", "synthesize"],
+    template: ["Students will be able to", "[verb]", "[ideas/concepts]", "across", "[disciplines/topics]"],
+    example: "Students will be able to compare derivatives and integrals across algebraic and trigonometric functions."
+  },
+  "Skills – Task": {
+    verbs: ["use", "calculate", "build", "simulate", "follow"],
+    template: ["Students will be able to", "[verb]", "[tools/techniques]", "to", "[specific task]"],
+    example: "Students will be able to calculate the area under a curve using definite integrals."
+  },
+  "Skills – Analyze": {
+    verbs: ["break down", "differentiate", "interpret", "infer"],
+    template: ["Students will be able to", "[verb]", "[data/information]", "to", "[purpose]"],
+    example: "Students will be able to interpret a graph of a function to determine intervals of increase and decrease."
+  },
+  "Skills – Select/Evaluate": {
+    verbs: ["choose", "justify", "critique", "test", "recommend"],
+    template: ["Students will be able to", "[verb]", "[methods/strategies]", "for", "[application/problem]"],
+    example: "Students will be able to justify the choice of substitution method in solving complex integrals."
+  },
+  "Application – Knowledge": {
+    verbs: ["solve", "demonstrate", "adapt", "implement"],
+    template: ["Students will be able to", "[verb]", "[knowledge/approach]", "in", "[real/simulated context]"],
+    example: "Students will be able to implement integration techniques in simulated physics problems."
+  },
+  "Application – Skill": {
+    verbs: ["design", "construct", "test", "produce", "revise"],
+    template: ["Students will be able to", "[verb]", "[model/solution]", "for", "[problem/task]"],
+    example: "Students will be able to design a mathematical model for predicting rates of change in populations."
+  },
+  "Generic – Communication": {
+    verbs: ["write", "present", "discuss", "summarize", "interpret", "listen"],
+    template: ["Students will be able to", "[verb]", "[information/idea]", "in", "[mode/context]"],
+    example: "Students will be able to present problem-solving strategies in oral presentations during tutorial sessions."
+  },
+  "Generic – Critical Judgment": {
+    verbs: ["critique", "assess", "argue", "justify", "conclude"],
+    template: ["Students will be able to", "[verb]", "[method/result]", "based on", "[evidence/context]"],
+    example: "Students will be able to justify the use of L'Hôpital's Rule for evaluating limits in indeterminate forms."
+  },
+  "Generic – Own Learning": {
+    verbs: ["identify", "propose", "investigate", "monitor", "revise"],
+    template: ["Students will be able to", "[verb]", "[learning goals/tasks]", "for", "[course objective/context]"],
+    example: "Students will be able to investigate alternative approaches to solve improper integrals."
+  },
+  "Employability – Readiness": {
+    verbs: ["implement", "deliver", "follow protocols", "meet expectations"],
+    template: ["Students will be able to", "[verb]", "[tasks/assignments]", "in", "[professional/academic context]"],
+    example: "Students will be able to meet expectations in standardized calculus testing environments."
+  },
+  "Employability – Teamwork": {
+    verbs: ["cooperate", "support", "present jointly", "negotiate"],
+    template: ["Students will be able to", "[verb]", "with peers to", "[team activity/goal]"],
+    example: "Students will be able to present jointly with peers a group solution to a multistep optimization problem."
+  },
+  "Employability – Ownership": {
+    verbs: ["complete", "organize", "reflect", "plan", "fulfill"],
+    template: ["Students will be able to", "[verb]", "[task/activity]", "in", "[course/project context]"],
+    example: "Students will be able to organize and submit individual reports on assigned calculus exercises."
+  },
+  "Ethics & Values – Practice": {
+    verbs: ["respond", "justify", "reflect", "act", "advocate"],
+    template: ["Students will be able to", "[verb]", "[ethical/humanistic value]", "in", "[decision/context]"],
+    example: "Students will be able to reflect on ethical considerations in applying calculus to real-life predictions."
+  },
+  "Student Contribution – Ask": {
+    verbs: ["question", "probe", "formulate", "challenge"],
+    template: ["Students will be able to", "[verb]", "[ideas/problems]", "during", "[discussion/situation]"],
+    example: "Students will be able to formulate questions about the limitations of derivative-based models during classroom discussions."
+  },
+  
+  "Student Contribution – Risks": {
+    template: ["Graduates will be able to", "[verb]", "potential", "[risks or unintended effects]", "associated with", "[learning actions or decisions]"],
+    verbs: ["anticipate", "recognize", "acknowledge", "evaluate"]
+  },
+  
+  "Student Contribution – Risks": {
+    verbs: ["analyze", "identify", "discuss", "reflect"],
+    template: ["Students will be able to", "[verb]", "[possible risks/errors]", "when", "[working on tasks/applying concepts]"],
+    example: "Students will be able to identify possible risks of misapplying the chain rule when solving composite function derivatives."
+  },
+  "Student Contribution – Group": {
+    verbs: ["collaborate", "present", "build on others’ ideas"],
+    template: ["Students will be able to", "[verb]", "in", "[group activity]", "to", "[purpose]"],
+    example: "Students will be able to collaborate in peer groups to build on others’ ideas for solving challenging integration tasks."
+  },
+  "Subject Evolution – Temporal": {
+    verbs: ["describe", "compare", "explain", "outline", "map"],
+    template: ["Students will be able to", "[verb]", "[historical concepts]", "related to", "[subject area]"],
+    example: "Students will be able to explain the evolution of calculus from early Greek mathematics to Newton and Leibniz."
+  },
+  "Subject Evolution – Human": {
+    verbs: ["identify", "describe", "analyze", "explain", "illustrate"],
+    template: ["Students will be able to", "[verb]", "contributions of", "[individuals/cultures]", "in", "[subject/topic]"],
+    example: "Students will be able to illustrate contributions of Indian and Arab mathematicians to early concepts of integration."
+  }
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  populateBroadGAs();
+  updateStep2Dropdown();
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  const gaDropdown = document.getElementById("gaSelectDropdown");
+  if (gaDropdown) {
+    gaDropdown.addEventListener("change", displayCLOTemplate);
+  }
+});
+
+</script>
+
+<script>
+  const { jsPDF } = window.jspdf;
+
+  function obsoleteDownloadPDF() {
+    const doc = new jsPDF();
+
+    let y = 15;
+
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text("Graduate Attributes", 105, y, { align: "center" });
+
+    y += 8;
+    doc.setFontSize(12);
+    doc.setFont("times", "italic");
+    doc.text("(developed using NHQEF guide)", 105, y, { align: "center" });
+
+    y += 15;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(12);
+    doc.text("Prepared by Praveen Chhikara", 14, y);
+    y += 7;
+    const program = document.getElementById("programName").value || "Same";
+    doc.text(`Program: ${program}`, 14, y);
+
+    y += 12;
+    doc.setFillColor(41, 128, 185); // blue header
+    doc.setTextColor(255, 255, 255);
+    doc.rect(14, y - 5, 180, 8, "F");
+    doc.text("Graduate Attribute (GA)", 16, y);
+
+    y += 10;
+    doc.setTextColor(0, 0, 0);
+
+    const gaItems = document.querySelectorAll("#gaList li");
+    gaItems.forEach((li, i) => {
+      const text = li.textContent.replace("Edit", "").trim();
+      const lines = doc.splitTextToSize(`${text}`, 180);
+      if (y + lines.length * 7 > 280) {
+        doc.addPage();
+        y = 15;
+      }
+      doc.text(`${lines.join("\n")}`, 16, y);
+      y += lines.length * 7;
+    });
+
+    y += 10;
+    doc.setFont("times", "italic");
+    doc.text("Best wishes,", 16, y);
+    y += 7;
+    doc.setFont("helvetica", "bold");
+    doc.text("Praveen Chhikara", 16, y);
+
+    doc.save("graduate_attributes.pdf");
+  }
+
+  document.querySelector('button[style*="background-color: #28a745"]')
+    .addEventListener("click", downloadPDF);
+</script>
+<script>
+
+
+
+
+function displayCLOTemplate() {
+  const selectedGA = document.getElementById("gaSelectDropdown").value;
+  const block = document.getElementById("cloDisplayBlock");
+  block.innerHTML = "";
+
+  if (!selectedGA) return;
+
+  const label = document.createElement("label");
+  label.textContent = "Now select the relevant Sub-GA for this GA:";
+  label.style.fontWeight = "bold";
+  block.appendChild(label);
+
+  const dropdown = document.createElement("select");
+  dropdown.innerHTML = '<option value="">-- Select Sub-GA --</option>';
+  dropdown.style.marginLeft = "10px";
+
+  Object.keys(cloTemplates).forEach(subga => {
+    const opt = document.createElement("option");
+    opt.value = subga;
+    opt.textContent = subga;
+    dropdown.appendChild(opt);
+  });
+
+  block.appendChild(dropdown);
+
+  const output = document.createElement("div");
+  output.id = "cloOutput";
+  output.style.marginTop = "1rem";
+  block.appendChild(output);
+
+  dropdown.addEventListener("change", () => {
+    const selectedSubGA = dropdown.value;
+    output.innerHTML = "";
+
+    const cloTemplate = cloTemplates[selectedSubGA];
+    if (cloTemplate) {
+      const label = document.createElement("p");
+      label.textContent = "Sub-GA: " + selectedSubGA;
+      label.style.fontWeight = "bold";
+      label.style.color = "#0d6efd";
+      output.appendChild(label);
+
+      const example = document.createElement("p");
+      example.textContent = "Example (Calculus): " + cloTemplate.example;
+      example.style.fontStyle = "italic";
+      example.style.color = "#6c757d";
+      output.appendChild(example);
+
+      const cloLine = document.createElement("div");
+      cloLine.className = "ga-line";
+
+      cloTemplate.template.forEach(part => {
+        if (part === "[verb]") {
+          const sel = document.createElement("select");
+          cloTemplate.verbs.forEach(v => {
+            const opt = document.createElement("option");
+            opt.value = v;
+            opt.textContent = v;
+            sel.appendChild(opt);
+          });
+          cloLine.appendChild(sel);
+        } else if (part.startsWith("[")) {
+          const input = document.createElement("input");
+          input.type = "text";
+          input.placeholder = "Write something...";
+          input.style.width = "280px";
+          cloLine.appendChild(input);
+        } else {
+          const span = document.createElement("span");
+          span.textContent = part + " ";
+          cloLine.appendChild(span);
+        }
+      });
+
+      output.appendChild(cloLine);
+    }
+  });
+}
+
+    });
+
+    block.appendChild(cloLine);
+  }
+}
+
+    });
+
+    block.appendChild(cloLine);
+  }
+}
+
+    });
+
+    block.appendChild(cloLine);
+  }
+}
+
+    });
+
+    block.appendChild(cloLine);
+  }
+}
+
+// Will be filled by Step 1 logic
+const subGAMap = {};
+</script><script>
+
+
+
+
+function updateStep2Dropdown() {
+  const gaSelectDropdown = document.getElementById("gaSelectDropdown");
+  if (!gaSelectDropdown) return;
+
+  const gaLines = document.querySelectorAll("#gaList li");
+  gaSelectDropdown.innerHTML = '<option value="">-- Select a GA --</option>';
+
+  gaLines.forEach((line) => {
+    let text = line.textContent.replace("Edit", "").trim();
+    let cleanValue = text.replace(/^\d+\.\s*/, "");  // remove leading "1. "
+    const option = document.createElement("option");
+    option.value = cleanValue;
+    option.textContent = text;
+    gaSelectDropdown.appendChild(option);
+  });
+}
+
+
+
+
+
+document.addEventListener("DOMContentLoaded", () => {
+  const gaSelectDropdown = document.getElementById("gaSelectDropdown");
+  if (!gaSelectDropdown) return;
+
+  confirmedGAs.forEach(ga => {
+    const option = document.createElement("option");
+    option.value = ga.full;
+    option.textContent = ga.full;
+    gaSelectDropdown.appendChild(option);
+    subGAMap[ga.full] = ga.subga;
+  });
+});
+</script><script>
+document.addEventListener("DOMContentLoaded", () => {
+  const dropdown = document.getElementById("gaSelectDropdown");
+  if (dropdown) {
+    dropdown.addEventListener("change", displayCLOTemplate);
+  }
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const dropdown = document.getElementById("gaSelectDropdown");
+  if (dropdown) {
+    dropdown.addEventListener("change", displayCLOTemplate);
+  }
+});
+</script>
+<script>
+function scrollAndHighlightCourseInput() {
+  const label = document.querySelector("label[for='courseNameStep2']");
+  if (label) {
+    label.classList.add("highlight-label");
+    label.scrollIntoView({ behavior: "smooth", block: "center" });
+    setTimeout(() => label.classList.remove("highlight-label"), 2000);
+  }
+}
+</script>
+<script>
+const step2SubGAOptions = [
+  "Knowledge – Concepts",
+  "Knowledge – Procedures",
+  "Knowledge – Linking",
+  "Skills – Task",
+  "Skills – Analyze",
+  "Skills – Select/Evaluate",
+  "Application – Knowledge",
+  "Application – Skill",
+  "Generic – Communication",
+  "Generic – Critical Judgment",
+  "Generic – Own Learning",
+  "Employability – Readiness",
+  "Employability – Teamwork",
+  "Employability – Ownership",
+  "Ethics & Values – Practice",
+  "Student Contribution – Ask",
+  "Student Contribution – Group",
+  "Subject Evolution – Temporal",
+  "Subject Evolution – Human"
+];
+
+function handleGASelectStep2() {
+  const container = document.getElementById("cloDisplayBlock");
+  container.innerHTML = "";
+
+  const label = document.createElement("label");
+  label.textContent = "Now select a Sub-GA:";
+  label.style.fontWeight = "bold";
+  label.style.marginTop = "1rem";
+  container.appendChild(label);
+
+  const subgaDropdown = document.createElement("select");
+  subgaDropdown.id = "step2SubGADropdown";
+  subgaDropdown.innerHTML = '<option value="">-- Select Sub-GA --</option>';
+  subgaDropdown.style.marginBottom = "1rem";
+  subgaDropdown.style.marginLeft = "10px";
+
+  step2SubGAOptions.forEach(subga => {
+    const opt = document.createElement("option");
+    opt.value = subga;
+    opt.textContent = subga;
+    subgaDropdown.appendChild(opt);
+  });
+
+  container.appendChild(subgaDropdown);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const gaSelectDropdown = document.getElementById("gaSelectDropdown");
+  if (gaSelectDropdown) {
+    gaSelectDropdown.addEventListener("change", handleGASelectStep2);
+  }
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const gaDropdown = document.getElementById("gaSelectDropdown");
+  const blockContainer = document.getElementById("step2SubGABlocksContainer");
+  const cloDisplay = document.getElementById("cloDisplayBlock");
+
+  if (!gaDropdown || !blockContainer || !cloDisplay) return;
+
+  gaDropdown.addEventListener("change", () => {
+    // Removed code that cleared display to retain existing GA blocks
+    const label = document.createElement("label");
+    label.textContent = "Now select a Sub-GA for the GA above:";
+    label.style.fontWeight = "bold";
+
+    const helpIcon = document.createElement("span");
+    helpIcon.textContent = " (?)";
+    helpIcon.title = "This is the text in your above GA before colon sign";
+    helpIcon.style.cursor = "help";
+    label.appendChild(helpIcon);
+    cloDisplay.appendChild(label);
+
+    const subgaDropdown = document.createElement("select");
+    subgaDropdown.id = "step2SubGADropdown";
+    subgaDropdown.style.margin = "1rem 0";
+    subgaDropdown.innerHTML = '<option value="">-- Select Sub-GA --</option>';
+    Object.keys(cloTemplates).forEach(subga => {
+      const opt = document.createElement("option");
+      opt.value = subga;
+      opt.textContent = subga;
+      subgaDropdown.appendChild(opt);
+    });
+
+    cloDisplay.appendChild(subgaDropdown);
+
+    const output = document.createElement("div");
+    output.id = "cloStructureDisplay";
+    cloDisplay.appendChild(output);
+
+    subgaDropdown.addEventListener("change", () => {
+      const subga = subgaDropdown.value;
+      output.innerHTML = "";
+
+      const template = cloTemplates[subga];
+      if (!template) return;
+
+      const sentenceLine = document.createElement("div");
+      sentenceLine.className = "ga-line";
+
+      const inputs = [];
+      template.template.forEach(part => {
+        if (part === "[verb]") {
+          const sel = document.createElement("select");
+          template.verbs.forEach(v => {
+            const opt = document.createElement("option");
+            opt.value = v;
+            opt.textContent = v;
+            sel.appendChild(opt);
+          });
+          sentenceLine.appendChild(sel);
+          inputs.push(sel);
+        } else if (part.startsWith("[")) {
+          const input = document.createElement("input");
+          input.type = "text";
+          input.placeholder = "Write something...";
+          input.style.width = "280px";
+          sentenceLine.appendChild(input);
+          inputs.push(input);
+        } else {
+          const span = document.createElement("span");
+          span.textContent = part + " ";
+          sentenceLine.appendChild(span);
+        }
+      });
+
+      output.appendChild(sentenceLine);
+
+      const example = document.createElement("p");
+      example.textContent = "Example: " + template.example;
+      example.style.fontStyle = "italic";
+      example.style.color = "#6c757d";
+      output.appendChild(example);
+
+      
+        const btn1 = document.createElement("button");
+        btn1.textContent = "Save and Add more CLOs";
+        btn1.onclick = () => {
+          const inputsCopy = [...inputs];
+          const values = template.template.map(part => {
+            if (part === "[verb]" || part.startsWith("[")) {
+              const v = inputsCopy.shift().value.trim();
+              if (!v) return "";
+              return v;
+            }
+            return part;
+          });
+          if (values.includes("")) return alert("Please complete all parts of the CLO.");
+          const cloSentence = values.join(" ");
+      const existingSentences = Array.from(ul.children).map(li => li.textContent.replace("Edit", "").trim());
+      if (existingSentences.includes(cloSentence.trim())) return;
+          const idSafe = subga.replace(/\W+/g, "_");
+
+          let block = document.getElementById("block_" + idSafe);
+          if (!block) {
+            block = document.createElement("div");
+            block.id = "block_" + idSafe;
+            
+  const existingSentences = Array.from(ul.children).map(li => li.textContent.trim().replace("Edit", "").trim());
+  if (existingSentences.includes(cloSentence.trim())) {
+    return; // skip adding duplicate CLO
+  }
+
+  const bgColors = ["#e3f2fd", "#fce4ec", "#f3e5f5", "#e8f5e9", "#fff3e0", "#ede7f6", "#f1f8e9", "#fbe9e7"];
+  const blockColor = bgColors[Math.floor(Math.random() * bgColors.length)];
+  block.style.background = blockColor;
+
+            block.style.border = "2px solid #007bff";
+            block.style.padding = "1rem";
+            block.style.marginTop = "1rem";
+            block.style.borderRadius = "6px";
+
+            const heading = document.createElement("h4");
+            heading.textContent = "GA: " + document.getElementById("gaSelectDropdown").value + " | Sub-GA: " + subga;
+            heading.style.color = "#007bff";
+            block.appendChild(heading);
+
+            const ul = document.createElement("ul");
+            ul.id = "cloList_" + idSafe;
+            block.appendChild(ul);
+
+            blockContainer.appendChild(block);
+          }
+
+          const ul = document.getElementById("cloList_" + idSafe);
+          const li = document.createElement("li");
+          li.textContent = cloSentence;
+          
+  const deleteBtn = document.createElement("button");
+  deleteBtn.textContent = "Delete";
+  deleteBtn.style.marginLeft = "1rem";
+  deleteBtn.onclick = () => {
+    if (confirm("Are you sure you want to delete this CLO?")) {
+      ul.removeChild(li);
+    }
+  };
+  li.appendChild(deleteBtn);
+  ul.appendChild(li);
+    
+
+          sentenceLine.scrollIntoView({ behavior: "smooth", block: "center" });
+          sentenceLine.classList.add("highlight-label");
+          setTimeout(() => sentenceLine.classList.remove("highlight-label"), 2000);
+        };
+
+        const btn2 = document.createElement("button");
+        btn2.textContent = "Save and move to another GA";
+        btn2.style.marginLeft = "1rem";
+        btn2.onclick = () => {
+          btn1.onclick();
+          const label = document.querySelector("label[for='gaSelectDropdown']");
+          if (label) {
+            label.scrollIntoView({ behavior: "smooth", block: "center" });
+            label.classList.add("highlight-label");
+            setTimeout(() => label.classList.remove("highlight-label"), 2000);
+          }
+        };
+
+    });
+  });
+});</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const gaDropdown = document.getElementById("gaSelectDropdown");
+  const blockContainer = document.getElementById("step2SubGABlocksContainer");
+  const cloDisplay = document.getElementById("cloDisplayBlock");
+
+  if (!gaDropdown || !blockContainer || !cloDisplay) return;
+
+  gaDropdown.addEventListener("change", () => {
+    const label = document.createElement("label");
+    label.textContent = "Now select a Sub-GA for the GA above:";
+    label.style.fontWeight = "bold";
+    const helpIcon = document.createElement("span");
+    helpIcon.textContent = " (?)";
+    helpIcon.title = "This is the text in your above GA before colon sign";
+    helpIcon.style.cursor = "help";
+    label.appendChild(helpIcon);
+    cloDisplay.innerHTML = "";
+    cloDisplay.appendChild(label);
+
+    const subgaDropdown = document.createElement("select");
+    subgaDropdown.id = "step2SubGADropdown";
+    subgaDropdown.style.margin = "1rem 0";
+    subgaDropdown.innerHTML = '<option value="">-- Select Sub-GA --</option>';
+    Object.keys(cloTemplates).forEach(subga => {
+      const opt = document.createElement("option");
+      opt.value = subga;
+      opt.textContent = subga;
+      subgaDropdown.appendChild(opt);
+    });
+    cloDisplay.appendChild(subgaDropdown);
+
+    const output = document.createElement("div");
+    output.id = "cloStructureDisplay";
+    cloDisplay.appendChild(output);
+
+    subgaDropdown.addEventListener("change", () => {
+      const subga = subgaDropdown.value;
+      output.innerHTML = "";
+
+      const template = cloTemplates[subga];
+      if (!template) return;
+
+      const example = document.createElement("p");
+      example.textContent = "Example: " + template.example;
+      example.style.fontStyle = "italic";
+      example.style.color = "#6c757d";
+
+      const sentenceLine = document.createElement("div");
+      sentenceLine.className = "ga-line";
+      const inputs = [];
+      template.template.forEach(part => {
+        if (part === "[verb]") {
+          const sel = document.createElement("select");
+          template.verbs.forEach(v => {
+            const opt = document.createElement("option");
+            opt.value = v;
+            opt.textContent = v;
+            sel.appendChild(opt);
+          });
+          sentenceLine.appendChild(sel);
+          inputs.push(sel);
+        } else if (part.startsWith("[")) {
+          const input = document.createElement("input");
+          input.type = "text";
+          input.placeholder = "Write something...";
+          input.style.width = "280px";
+          sentenceLine.appendChild(input);
+          inputs.push(input);
+        } else {
+          const span = document.createElement("span");
+          span.textContent = part + " ";
+          sentenceLine.appendChild(span);
+        }
+      });
+
+      output.appendChild(sentenceLine);
+      output.appendChild(example);
+
+      const btnContainer = document.createElement("div");
+      btnContainer.style.marginTop = "1rem";
+
+      const saveBtn = document.createElement("button");
+      saveBtn.textContent = "Save and Add CLO for current GA";
+      
+
+saveBtn.onclick = () => {
+  const values = [];
+  let valid = true;
+  inputs.forEach((el) => {
+    const val = el.value.trim();
+    if (!val) valid = false;
+    values.push(val);
+  });
+
+  if (!valid) {
+    alert("Please complete all fields.");
+    return;
+  }
+
+  const cloSentence = template.template.map(part => {
+    if (part === "[verb]" || part.startsWith("[")) {
+      return values.shift();
+    } else {
+      return part;
+    }
+  }).join(" ");
+
+  const idSafe = subga.replace(/[^a-zA-Z0-9_]/g, "_");
+  let block = document.getElementById("block_" + idSafe);
+  if (!block) {
+    block = document.createElement("div");
+    block.id = "block_" + idSafe;
+  const bgColors = ["#e3f2fd", "#fce4ec", "#f3e5f5", "#e8f5e9", "#fff3e0", "#ede7f6", "#f1f8e9", "#fbe9e7"];
+  const blockColor = bgColors[Math.floor(Math.random() * bgColors.length)];
+  block.style.background = blockColor;
+    block.style.border = "2px solid #007bff";
+    block.style.padding = "1rem";
+    block.style.marginTop = "1rem";
+    block.style.borderRadius = "6px";
+
+    const heading = document.createElement("h4");
+    heading.textContent = "GA: " + document.getElementById("gaSelectDropdown").value + " | Sub-GA: " + subga;
+    heading.style.color = "#007bff";
+    block.appendChild(heading);
+
+    const ul = document.createElement("ul");
+    ul.id = "cloList_" + idSafe;
+    block.appendChild(ul);
+    blockContainer.appendChild(block);
+  }
+
+  const ul = document.getElementById("cloList_" + idSafe);
+  const li = document.createElement("li");
+  li.textContent = cloSentence;
+
+  const editBtn = document.createElement("button");
+  editBtn.textContent = "Edit";
+  editBtn.style.marginLeft = "1rem";
+
+  editBtn.onclick = () => {
+    const originalText = li.firstChild.textContent.trim();
+    li.innerHTML = "";
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.value = originalText;
+    input.style.width = "70%";
+
+    const saveEditBtn = document.createElement("button");
+    saveEditBtn.textContent = "Save";
+    saveEditBtn.style.marginLeft = "1rem";
+
+    saveEditBtn.onclick = () => {
+      li.innerHTML = input.value;
+      li.appendChild(editBtn);
+    };
+
+    li.appendChild(input);
+    li.appendChild(saveEditBtn);
+  };
+
+  li.appendChild(editBtn);
+  
+  const deleteBtn = document.createElement("button");
+  deleteBtn.textContent = "Delete";
+  deleteBtn.style.marginLeft = "1rem";
+  deleteBtn.onclick = () => {
+    if (confirm("Are you sure you want to delete this CLO?")) {
+      ul.removeChild(li);
+    }
+  };
+  li.appendChild(deleteBtn);
+  ul.appendChild(li);
+    
+
+  sentenceLine.scrollIntoView({ behavior: "smooth", block: "center" });
+  sentenceLine.classList.add("highlight-label");
+  setTimeout(() => sentenceLine.classList.remove("highlight-label"), 2000);
+  showCLOHintPopup();
+};
+
+
+      
+  btnContainer.appendChild(saveBtn);
+
+  const note = document.createElement("div");
+  note.textContent = "Make sure you click save button (only once) to save CLOs";
+  note.style.marginTop = "0.5rem";
+  note.style.fontFamily = "Comic Sans MS, cursive, sans-serif";
+  note.style.color = "#d7263d";
+  note.style.fontSize = "1rem";
+  note.style.fontWeight = "bold";
+  note.style.background = "#fff3cd";
+  note.style.padding = "0.4rem";
+  note.style.borderRadius = "5px";
+  note.style.border = "1px solid #f5c6cb";
+  btnContainer.appendChild(note);
+
+
+  const moveBtn = document.createElement("button");
+  moveBtn.textContent = "Move to another GA";
+  moveBtn.style.marginLeft = "1rem";
+  moveBtn.onclick = () => {
+    const label = document.querySelector("label[for='gaSelectDropdown']");
+    if (!label) return;
+
+    label.classList.add("highlight-label");
+    label.scrollIntoView({ behavior: "smooth", block: "center" });
+    setTimeout(() => label.classList.remove("highlight-label"), 2000);
+
+    let popup = document.getElementById("moveGAPopup");
+    if (!popup) {
+      popup = document.createElement("div");
+      popup.id = "moveGAPopup";
+      popup.style.position = "absolute";
+      popup.style.background = "#fff4e5";
+      popup.style.color = "#b85c00";
+      popup.style.border = "1px solid #f0ad4e";
+      popup.style.padding = "0.6rem";
+      popup.style.borderRadius = "5px";
+      popup.style.boxShadow = "2px 2px 5px rgba(0,0,0,0.2)";
+      popup.style.zIndex = 1000;
+      popup.style.fontWeight = "bold";
+      popup.innerText = "🔁 Change to another GA";
+      document.body.appendChild(popup);
+    }
+
+    const rect = label.getBoundingClientRect();
+    popup.style.top = (window.scrollY + rect.top - 45) + "px";
+    popup.style.left = (window.scrollX + rect.left + 200) + "px";
+    popup.style.display = "block";
+
+    setTimeout(() => {
+      popup.style.display = "none";
+    }, 2500);
+  };
+
+  btnContainer.appendChild(moveBtn);
+
+    
+      output.appendChild(btnContainer);
+    });
+  });
+});
+
+      const moveBtn = document.createElement("button");
+      moveBtn.textContent = "Move to another GA";
+      moveBtn.style.marginLeft = "1rem";
+      moveBtn.onclick = () => {
+        const gaLabel = document.querySelector("label[for='gaSelectDropdown']");
+        if (gaLabel) {
+          gaLabel.classList.add("highlight-label");
+          gaLabel.scrollIntoView({ behavior: "smooth", block: "center" });
+          setTimeout(() => gaLabel.classList.remove("highlight-label"), 2000);
+        }
+      };
+      btnContainer.appendChild(moveBtn);
+
+
+
+        editBtn.onclick = () => {
+          const originalText = li.firstChild.textContent;
+          li.innerHTML = '';
+          const editInput = document.createElement('input');
+          editInput.type = 'text';
+          editInput.value = cloSentence;
+          editInput.style.width = '80%';
+          li.appendChild(editInput);
+
+          const saveEdit = document.createElement('button');
+          saveEdit.textContent = 'Save';
+          saveEdit.style.marginLeft = '1rem';
+          saveEdit.onclick = () => {
+            li.innerHTML = editInput.value;
+            li.appendChild(editBtn);
+          };
+          li.appendChild(saveEdit);
+        };
+        
+
+document.addEventListener("DOMContentLoaded", () => {
+  const existingBtn = document.querySelector("button");
+  if (existingBtn && existingBtn.textContent.includes("Save and Add CLO for current GA")) {
+    const moveBtn = document.createElement("button");
+    moveBtn.textContent = "I have added all CLO(s) for this GA, so move to another GA";
+    moveBtn.style.marginLeft = "1rem";
+
+    moveBtn.onclick = () => {
+      const label = document.querySelector("label[for='gaSelectDropdown']");
+      if (label) {
+        label.classList.add("highlight-label");
+        label.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => label.classList.remove("highlight-label"), 2000);
+      }
+    };
+
+    existingBtn.parentElement.appendChild(moveBtn);
+  }
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  const saveBtn = Array.from(document.querySelectorAll("button")).find(b => b.textContent.includes("Save and Add CLO for current GA"));
+  if (saveBtn && !document.getElementById("cloNoteMsg")) {
+    const note = document.createElement("div");
+    note.id = "cloNoteMsg";
+    note.textContent = "Note: Once you have added all CLOs for current GA, select another GA by choosing an option in 'Select a GA to write a CLO for the course above'";
+    note.style.fontSize = "0.85rem";
+    note.style.marginTop = "0.5rem";
+    note.style.color = "#aa4a00";
+    note.style.fontWeight = "bold";
+    saveBtn.insertAdjacentElement("afterend", note);
+  }
+});</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const gaDropdown = document.getElementById("gaSelectDropdown");
+  if (gaDropdown) {
+    gaDropdown.addEventListener("change", () => {
+      setTimeout(() => {
+        const label = Array.from(document.querySelectorAll("label"))
+          .find(el => el.textContent.trim().startsWith("Now select a Sub-GA"));
+        if (label) {
+          label.classList.add("highlight-label");
+          label.scrollIntoView({ behavior: "smooth", block: "center" });
+          setTimeout(() => label.classList.remove("highlight-label"), 2000);
+        }
+      }, 100);
+    });
+  }
+});
+</script><script>
+document.addEventListener("DOMContentLoaded", () => {
+  const subGADropdown = document.getElementById("step2SubGADropdown");
+  if (subGADropdown) {
+    subGADropdown.addEventListener("change", () => {
+      setTimeout(() => {
+        const structureBlock = document.getElementById("cloLineInputs");
+        if (structureBlock) {
+          structureBlock.classList.add("highlight-label");
+          structureBlock.scrollIntoView({ behavior: "smooth", block: "center" });
+          setTimeout(() => structureBlock.classList.remove("highlight-label"), 2000);
+        }
+      }, 200);
+    });
+  }
+});
+</script><script>
+document.addEventListener("DOMContentLoaded", () => {
+  const saveBtn = Array.from(document.querySelectorAll("button")).find(btn =>
+    btn.textContent.includes("Save and Add CLO for current GA")
+  );
+
+  if (saveBtn && !document.getElementById("cloInstructionNote")) {
+    const note = document.createElement("div");
+    note.id = "cloInstructionNote";
+    note.textContent = "Note: (1) Once you have added all CLOs for current GA, select another GA by choosing an option in 'Select a GA to write a CLO for the course above.' (2) Ensure that you do not click this button twice for a single CLO; otherwise CLO might be duplicated.";
+    note.style.fontSize = "0.85rem";
+    note.style.marginTop = "0.5rem";
+    note.style.color = "#b85c00";
+    note.style.fontWeight = "bold";
+    saveBtn.insertAdjacentElement("afterend", note);
+  }
+});
+</script><script>
+document.getElementById("showCLOSummaryButton").addEventListener("click", function() {
+  const summaryDiv = document.getElementById("cloSummaryTable");
+  summaryDiv.innerHTML = "";
+
+  const table = document.createElement("table");
+  table.style.width = "100%";
+  table.style.borderCollapse = "collapse";
+  table.style.marginTop = "1rem";
+
+  const header = table.insertRow();
+  ["Graduate Attributes", "Course Learning Outcomes (aligned with GAs)"].forEach(text => {
+    const th = document.createElement("th");
+    th.textContent = text;
+    th.style.border = "1px solid #ccc";
+    th.style.padding = "8px";
+    th.style.background = "#007bff";
+    th.style.color = "white";
+    table.appendChild(th);
+    header.appendChild(th);
+  });
+
+  const blocks = document.querySelectorAll("div[id^='block_']");
+  blocks.forEach(block => {
+    const subga = block.querySelector("h4")?.textContent?.replace("Sub-GA: ", "") || "";
+    const gaDropdown = document.getElementById("gaSelectDropdown");
+    const headingText = block.querySelector("h4")?.textContent || "";
+    const [gaPart, subgaPart] = headingText.split(" | Sub-GA: ");
+    const selectedGA = gaPart?.replace("GA: ", "") || "";
+    const cloItems = block.querySelectorAll("li");
+    cloItems.forEach(clo => {
+      const row = table.insertRow();
+      [selectedGA, clo.textContent.replace("Edit", "").replace("Delete", "").trim()].forEach(text => {
+        const td = document.createElement("td");
+        td.textContent = text;
+        td.style.border = "1px solid #ccc";
+        td.style.padding = "8px";
+        row.appendChild(td);
+      });
+    });
+  });
+
+  
+  
+  const heading = document.createElement("div");
+  heading.style.marginTop = "1.5rem";
+  heading.style.color = "#003366";
+  heading.style.textAlign = "center";
+  heading.innerHTML = "<strong>Graduate Attributes and Course Learning Outcomes</strong><br/><em>(inspired from NHQEF and NEP-2020)</em>";
+
+  heading.style.marginTop = "1.5rem";
+  heading.style.color = "#003366";
+  summaryDiv.appendChild(heading);
+
+  const program = document.getElementById("programName")?.value || "Not specified";
+  const course = document.getElementById("courseNameStep2")?.value || "Not specified";
+  const contextInfo = document.createElement("p");
+  contextInfo.innerHTML = "<strong>Program:</strong> " + program + " &nbsp;&nbsp; <strong>Course:</strong> " + course;
+  summaryDiv.appendChild(contextInfo);
+
+  summaryDiv.appendChild(table);
+
+  const footer = document.createElement("div");  footer.style.marginTop = "1rem";  footer.innerHTML = `    <p style="font-family: 'Georgia', serif; font-size: 1rem; color: #2c3e50; font-style: italic;">      &#10024; Best wishes,<br/><strong style="font-size: 1.05rem;">Praveen Chhikara</strong>    </p>    <p><strong>Notes:</strong></p>    <p style="font-family: 'Consolas', monospace; font-size: 0.95rem;">      This guide is inspired from the NHQEF framework (by UGC) and NEP 2020 policy documents with additional attributes added to support holistic education goals.<br/>      If you have any questions, feel free to reach out to Praveen.    </p>  `;  summaryDiv.appendChild(footer);
+
+  summaryDiv.style.display = "block";
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const gaDropdown = document.getElementById("gaSelectDropdown");
+
+  gaDropdown.addEventListener("change", () => {
+    const selectedGA = gaDropdown.value.trim();
+
+    // Find matching sub-GA
+    const allSubGAs = [].concat(...Object.values(gaOptions));
+    const match = allSubGAs.find(sub => selectedGA.startsWith(sub));
+
+    setTimeout(() => {
+      const subGADropdown = document.getElementById("step2SubGADropdown");
+      if (subGADropdown && match) {
+        subGADropdown.value = match;
+        subGADropdown.dispatchEvent(new Event("change"));
+      }
+    }, 500);
+  });
+});
+</script>
+
+<script>
+function showHintPopup() {
+  const label = document.querySelector("label[for='broadGA']");
+  const popup = document.getElementById("gaHintPopup");
+  if (label && popup) {
+    const rect = label.getBoundingClientRect();
+    popup.style.top = (window.scrollY + rect.top - 45) + "px";
+    popup.style.left = (window.scrollX + rect.left + 150) + "px";
+    popup.style.display = "block";
+    setTimeout(() => popup.style.display = "none", 2500);
+  }
+}
+</script>
+
+
+<script>
+function scrollAndHighlightCourseInput() {
+  const label = document.querySelector("label[for='courseNameStep2']");
+  const popup = document.getElementById("courseHintPopup");
+  if (label) {
+    label.classList.add("highlight-label");
+    label.scrollIntoView({ behavior: "smooth", block: "center" });
+    setTimeout(() => label.classList.remove("highlight-label"), 2000);
+
+    if (popup) {
+      const rect = label.getBoundingClientRect();
+      popup.style.top = (window.scrollY + rect.top - 45) + "px";
+      popup.style.left = (window.scrollX + rect.left + 200) + "px";
+      popup.style.display = "block";
+      setTimeout(() => popup.style.display = "none", 2500);
+    }
+  }
+}
+</script>
+
+
+<script>
+function showCLOHintPopup() {
+  const line = document.querySelector(".ga-line");
+  const popup = document.getElementById("cloHintPopup");
+  if (line && popup) {
+    const rect = line.getBoundingClientRect();
+    popup.style.top = (window.scrollY + rect.top - 45) + "px";
+    popup.style.left = (window.scrollX + rect.left + 200) + "px";
+    popup.style.display = "block";
+    setTimeout(() => popup.style.display = "none", 2500);
+  }
+}
+</script>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const btns = Array.from(document.querySelectorAll("button")).filter(b => b.textContent.trim() === "Move to another GA");
+  btns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const label = document.querySelector("label[for='gaSelectDropdown']");
+      if (!label) return;
+
+      // Scroll and highlight
+      label.classList.add("highlight-label");
+      label.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => label.classList.remove("highlight-label"), 2000);
+
+      // Pop-up
+      let popup = document.getElementById("moveGAPopup");
+      if (!popup) {
+        popup = document.createElement("div");
+        popup.id = "moveGAPopup";
+        popup.style.position = "absolute";
+        popup.style.background = "#fff4e5";
+        popup.style.color = "#b85c00";
+        popup.style.border = "1px solid #f0ad4e";
+        popup.style.padding = "0.6rem";
+        popup.style.borderRadius = "5px";
+        popup.style.boxShadow = "2px 2px 5px rgba(0,0,0,0.2)";
+        popup.style.zIndex = 1000;
+        popup.style.fontWeight = "bold";
+        popup.innerText = "🔁 Change to another GA";
+        document.body.appendChild(popup);
+      }
+
+      const rect = label.getBoundingClientRect();
+      popup.style.top = (window.scrollY + rect.top - 45) + "px";
+      popup.style.left = (window.scrollX + rect.left + 200) + "px";
+      popup.style.display = "block";
+
+      setTimeout(() => {
+        popup.style.display = "none";
+      }, 2500);
+    });
+  });
+});
+</script>
+
+
+
+<script>
+function obsoleteDownloadPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  let y = 15;
+
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text("Graduate Attributes and Course Learning Outcomes", 105, y, { align: "center" });
+
+  y += 7;
+  doc.setFont("times", "italic");
+  doc.setFontSize(11);
+  doc.text("(inspired from NHQEF and NEP-2020)", 105, y, { align: "center" });
+
+  y += 10;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.text("Prepared by Praveen Chhikara (based on emerging interpretation)", 14, y);
+  y += 7;
+  doc.setFont("times", "italic");
+  doc.text("Program: BSc", 14, y);
+  y += 6;
+  doc.text("Course: Calculus", 14, y);
+
+  y += 10;
+  doc.setFillColor(0, 102, 204);
+  doc.setTextColor(255, 255, 255);
+  doc.rect(14, y - 5, 182, 8, "F");
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.text("Graduate Attribute (GA)", 16, y);
+  doc.text("Course Learning Outcome (CLOs)", 116, y);
+  y += 10;
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(0, 0, 0);
+
+  const rows = document.querySelectorAll("#cloSummaryTable table tr:not(:first-child)");
+  rows.forEach(row => {
+    const cells = row.querySelectorAll("td");
+    if (cells.length >= 2) {
+      const ga = doc.splitTextToSize(cells[0].textContent.trim(), 90);
+      const clo = doc.splitTextToSize(cells[1].textContent.trim(), 90);
+      const lineCount = Math.max(ga.length, clo.length);
+      for (let i = 0; i < lineCount; i++) {
+        if (y > 270) { doc.addPage(); y = 15; }
+        doc.text(ga[i] || "", 16, y);
+        doc.text(clo[i] || "", 116, y);
+        y += 6;
+      }
+      y += 3;
+    }
+  });
+
+  y += 5;
+  doc.setFont("times", "italic");
+  doc.text("Best wishes,", 14, y);
+  y += 6;
+  doc.setFont("helvetica", "bold");
+  doc.text("Praveen Chhikara", 14, y);
+
+  y += 8;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text("Notes:", 14, y);
+  y += 6;
+  const noteText = "This guide is inspired from the NHQEF framework and NEP 2020 policy documents
+"
+                 + "with additional attributes added to support holistic education goals.
+"
+                 + "If you have any questions, feel free to reach out to Praveen.";
+  doc.text(noteText, 14, y);
+
+  doc.save("GA_CLOs_Report.pdf");
+}
+
+document.getElementById("showCLOSummaryButton").addEventListener("click", function () {
+  const summaryDiv = document.getElementById("cloSummaryTable");
+  if (!summaryDiv) return;
+
+  summaryDiv.innerHTML = "";
+
+  const blocks = document.querySelectorAll(".ga-block");
+  if (blocks.length === 0) {
+    alert("No GA blocks found. Please add CLOs before generating the table.");
+    return;
+  }
+
+  const table = document.createElement("table");
+  table.style.width = "100%";
+  table.style.borderCollapse = "collapse";
+
+  const headerRow = document.createElement("tr");
+  ["Graduate Attributes", "Course Learning Outcomes (aligned with GAs)"].forEach(header => {
+    const th = document.createElement("th");
+    th.textContent = header;
+    th.style.border = "1px solid #ccc";
+    th.style.padding = "8px";
+    th.style.backgroundColor = "#f2f2f2";
+    headerRow.appendChild(th);
+  });
+  table.appendChild(headerRow);
+
+  blocks.forEach(block => {
+    const headingText = block.querySelector("h4")?.textContent || "";
+    const ga = headingText.split(" | Sub-GA: ")[0]?.replace("GA: ", "") || "";
+    const cloListItems = block.querySelectorAll("ul li");
+    cloListItems.forEach(clo => {
+      const row = document.createElement("tr");
+
+      const gaCell = document.createElement("td");
+      gaCell.textContent = ga;
+      gaCell.style.border = "1px solid #ccc";
+      gaCell.style.padding = "8px";
+
+      const cloCell = document.createElement("td");
+      const cloSpan = clo.querySelector("span") || clo.firstChild;
+      cloCell.textContent = (cloSpan?.textContent || "").trim();
+      cloCell.style.border = "1px solid #ccc";
+      cloCell.style.padding = "8px";
+
+      row.appendChild(gaCell);
+      row.appendChild(cloCell);
+      table.appendChild(row);
+    });
+  });
+
+  
+  
+  const heading = document.createElement("div");
+  heading.style.marginTop = "1.5rem";
+  heading.style.color = "#003366";
+  heading.style.textAlign = "center";
+  heading.innerHTML = "<strong>Graduate Attributes and Course Learning Outcomes</strong><br/><em>(inspired from NHQEF and NEP-2020)</em>";
+
+  heading.style.marginTop = "1.5rem";
+  heading.style.color = "#003366";
+  summaryDiv.appendChild(heading);
+
+  const program = document.getElementById("programName")?.value || "Not specified";
+  const course = document.getElementById("courseNameStep2")?.value || "Not specified";
+  const contextInfo = document.createElement("p");
+  contextInfo.innerHTML = "<strong>Program:</strong> " + program + " &nbsp;&nbsp; <strong>Course:</strong> " + course;
+  summaryDiv.appendChild(contextInfo);
+
+  summaryDiv.appendChild(table);
+
+  const footer = document.createElement("div");  footer.style.marginTop = "1rem";  footer.innerHTML = `    <p style="font-family: 'Georgia', serif; font-size: 1rem; color: #2c3e50; font-style: italic;">      &#10024; Best wishes,<br/><strong style="font-size: 1.05rem;">Praveen Chhikara</strong>    </p>    <p><strong>Notes:</strong></p>    <p style="font-family: 'Consolas', monospace; font-size: 0.95rem;">      This guide is inspired from the NHQEF framework (by UGC) and NEP 2020 policy documents with additional attributes added to support holistic education goals.<br/>      If you have any questions, feel free to reach out to Praveen.    </p>  `;  summaryDiv.appendChild(footer);
+
+
+  const pdfBtn = document.createElement("button");
+  pdfBtn.textContent = "Download PDF with all GAs and CLOs";
+  pdfBtn.style.backgroundColor = "#007bff";
+  pdfBtn.style.color = "white";
+  pdfBtn.style.marginTop = "1rem";
+  pdfBtn.style.padding = "0.6rem 1rem";
+  pdfBtn.style.border = "none";
+  pdfBtn.style.borderRadius = "5px";
+  pdfBtn.style.fontWeight = "bold";
+  // removed PDF button action
+  summaryDiv.appendChild(pdfBtn);
+});
+</script>
+
+</body>
+</html>
